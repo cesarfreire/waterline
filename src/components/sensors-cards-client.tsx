@@ -1,139 +1,175 @@
+// app/components/SectionCardsClient.tsx
 "use client";
 
-import { IconRefresh } from "@tabler/icons-react";
-
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Separator } from "./ui/separator";
-import { getLatestSensorData } from "@/database";
 import { use, useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Thermometer,
+  Droplets,
+  Waves,
+  Layers,
+  Lightbulb,
+  Power,
+  RefreshCw,
+  Clock,
+} from "lucide-react";
+import { formatTimeAgo } from "@/lib/utils";
+import { DashboardDTO } from "@/lib/types";
 
-type Sensor = {
-  _id: string;
-  humidity: number;
-  temperature: number;
-  water_temperature: number;
-  water_level: number;
-  timestamp: string;
-  timezone: string;
-};
-
-type SensorDTO = {
-  data: Sensor[];
-};
-
-export function SectionCardsClient({ data }: { data: Promise<Sensor> }) {
-  const latest_data = use(data);
-  const [sensor, setSensor] = useState<Sensor>(latest_data);
+export function SectionCardsClient({ data }: { data: Promise<DashboardDTO> }) {
+  const initialData = use(data);
+  const [dashboardData, setDashboardData] = useState<DashboardDTO>(initialData);
   const [loading, setLoading] = useState(false);
 
-  const fetchSensorData = async () => {
+  const fetchDashboardData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      // simula um atraso de 1 segundo
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const response = await fetch("/api/sensors/all");
-      const data: SensorDTO = await response.json();
-      if (!data) {
-        throw new Error("Nenhum dado encontrado na coleção 'leituras'.");
+      // A API agora retorna tanto os sensores quanto o status em uma única chamada
+      const response = await fetch("/api/dashboard-data");
+      if (!response.ok) {
+        throw new Error("Falha ao buscar dados do dashboard.");
       }
-      setSensor(data.data[0]);
-      setLoading(false);
+      const data: DashboardDTO = await response.json();
+      setDashboardData(data);
     } catch (error) {
-      console.error("Erro ao buscar dados:", error);
+      console.error("Erro ao atualizar dados:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!sensor) {
+  // Se não houver dados iniciais, mostra uma mensagem de carregamento.
+  if (!dashboardData?.sensorData) {
     return (
-      <div className="text-center text-sm text-muted-foreground">
-        Carregando dados...
+      <div className="text-center p-8 text-muted-foreground">
+        Carregando dados do painel...
       </div>
     );
   }
 
-  const lastUpdate = new Date(sensor.timestamp).toLocaleString("pt-BR", {
-    timeZone: sensor.timezone,
-    hour12: false,
-  })
+  const { sensorData, deviceStatus } = dashboardData;
+  const timeAgo = formatTimeAgo(new Date(sensorData.timestamp));
 
   return (
-    <>
-      <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-        <Card className="@container/card">
-          <CardHeader>
-            <CardDescription>Umidade</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {sensor.humidity}%
-            </CardTitle>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="text-muted-foreground">Umidade do ambiente</div>
-          </CardFooter>
-        </Card>
-
-        <Card className="@container/card">
-          <CardHeader>
-            <CardDescription>Temperatura</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {sensor.temperature} °C
-            </CardTitle>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="text-muted-foreground">Temperatura do ambiente</div>
-          </CardFooter>
-        </Card>
-
-        <Card className="@container/card">
-          <CardHeader>
-            <CardDescription>Temperatura da Água</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {sensor.water_temperature.toFixed(1)} °C
-            </CardTitle>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="text-muted-foreground">Temperatura da água</div>
-          </CardFooter>
-        </Card>
-
-        <Card className="@container/card">
-          <CardHeader>
-            <CardDescription>Nível da Água</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {sensor.water_level} cm
-            </CardTitle>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="text-muted-foreground">Nível da água</div>
-          </CardFooter>
-        </Card>
-      </div>
-
-      <div className="flex flex-col items-center gap-2 mt-4">
-        <div className="text-sm text-muted-foreground">
-          Última atualização dos dados: {lastUpdate}
+    <div className="p-4 md:p-6 space-y-6">
+      {/* Cabeçalho Unificado */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Dashboard Geral</h1>
+          <p className="text-muted-foreground flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            <span>Atualizado {timeAgo}</span>
+          </p>
         </div>
         <Button
-          onClick={fetchSensorData}
+          onClick={fetchDashboardData}
           variant="outline"
           disabled={loading}
-          className="flex items-center gap-2"
         >
-          <IconRefresh className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Atualizar dados
+          <RefreshCw
+            className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
+          />
+          {loading ? "Atualizando..." : "Atualizar"}
         </Button>
       </div>
 
-      <Separator className="mt-4" />
-    </>
+      {/* Grid de Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {/* Card: Umidade */}
+        <Card className="col-span-1 lg:col-span-1 xl:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Umidade do Ar</CardTitle>
+            <Droplets className="h-5 w-5 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{sensorData.humidity}%</div>
+          </CardContent>
+        </Card>
+
+        {/* Card: Temperatura do Ar */}
+        <Card className="col-span-1 lg:col-span-1 xl:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Temperatura do Ar
+            </CardTitle>
+            <Thermometer className="h-5 w-5 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{sensorData.temperature}°C</div>
+          </CardContent>
+        </Card>
+
+        {/* Card: Temperatura da Água */}
+        <Card className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Temperatura da Água
+            </CardTitle>
+            <Waves className="h-5 w-5 text-teal-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {sensorData.water_temperature.toFixed(1)}°C
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card: Nível da Água */}
+        <Card className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-3">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Nível da Água</CardTitle>
+            <Layers className="h-5 w-5 text-gray-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{sensorData.water_level}</div>
+            <p className="text-xs text-muted-foreground">
+              Leitura do sensor analógico
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* --- NOVOS CARDS DE STATUS --- */}
+
+        {/* Card: Status do LED */}
+        <Card className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-3">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Status do LED</CardTitle>
+            <Lightbulb className="h-5 w-5 text-yellow-400" />
+          </CardHeader>
+          <CardContent>
+            <Badge
+              variant={
+                deviceStatus.ledStatus === "ON" ? "default" : "destructive"
+              }
+              className="text-lg"
+            >
+              {deviceStatus.ledStatus === "ON" ? "Ligado" : "Desligado"}
+            </Badge>
+          </CardContent>
+        </Card>
+
+        {/* Card: Status do Relé */}
+        <Card className="hidden sm:block sm:col-span-2 lg:col-span-1 xl:col-span-3">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Status do Relé
+            </CardTitle>
+            <Power className="h-5 w-5 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <Badge
+              variant={
+                deviceStatus.releStatus === "ON" ? "default" : "destructive"
+              }
+              className="text-lg"
+            >
+              {deviceStatus.releStatus === "ON" ? "Ligado" : "Desligado"}
+            </Badge>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

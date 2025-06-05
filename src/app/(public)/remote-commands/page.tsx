@@ -1,12 +1,28 @@
 import SectionActions from "@/components/section-actions";
-import { SectionCards } from "@/components/section-cards";
 import { Separator } from "@/components/ui/separator";
+import { auth } from "@/auth";
 
-export default function RemoteCommandsPage() {
+export default async function RemoteCommandsPage() {
+  const session = await auth();
+
+  if (!session?.user) {
+    return (
+      <div>Você não tem permissão para visualizar a página requisitada.</div>
+    );
+  }
+
+  if (session.user.email === "iceesar@live.com") {
+    return (
+      <>
+        <SectionActions />
+      </>
+    );
+  }
   return (
     <>
-      <SectionActions />
+      <h2 className="text-2xl font-semibold mb-4">
+        Você não tem permissão para visualizar a página requisitada.
+      </h2>
     </>
-    
-  )
+  );
 }

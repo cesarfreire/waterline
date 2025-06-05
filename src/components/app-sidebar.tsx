@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   IconCamera,
   IconChartBar,
@@ -19,12 +19,12 @@ import {
   IconUsers,
   IconLogs,
   IconChartDots3,
-  IconTerminal2
-} from "@tabler/icons-react"
+  IconTerminal2,
+} from "@tabler/icons-react";
 
-import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
+import { NavMain } from "@/components/nav-main";
+import { NavSecondary } from "@/components/nav-secondary";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -33,7 +33,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+import { useSession } from "next-auth/react";
+import SignInButton from "./sign-in-button";
 
 const data = {
   user: {
@@ -46,69 +48,25 @@ const data = {
       title: "Dashboard",
       url: "/dashboard",
       icon: IconDashboard,
+      public: true,
     },
     {
       title: "Sensores",
       url: "/sensors",
       icon: IconChartDots3,
+      public: true,
     },
     {
       title: "Logs",
       url: "/logs",
       icon: IconLogs,
+      public: true,
     },
     {
       title: "Comandos remotos",
       url: "/remote-commands",
       icon: IconTerminal2,
-    }
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
+      public: false,
     },
   ],
   navSecondary: [
@@ -116,11 +74,13 @@ const data = {
       title: "Settings",
       url: "#",
       icon: IconSettings,
-    }
-  ]
-}
+    },
+  ],
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { data: session } = useSession();
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -132,7 +92,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <a href="#">
                 <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
+                <span className="text-base font-semibold">Waterline</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -143,8 +103,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        {session?.user ? (
+          <NavUser
+            user={{
+              name: session.user.name || "User",
+              email: session.user.email || "",
+              avatar: session.user.image || "/avatars/default.jpg", // Fallback avatar
+            }}
+          />
+        ) : (
+          <SignInButton />
+        )}
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

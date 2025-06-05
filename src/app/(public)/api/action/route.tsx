@@ -14,8 +14,9 @@ const ALLOWED_ACTIONS = [
   "ACENDE_LED",
   "DESLIGA_RELE",
   "LIGA_RELE",
+  "ALIMENTAR_AGORA",
 ];
-const TOPICO = "esp8266/sub";
+const TOPICO = "esp8266/commands";
 
 export async function POST(req: Request) {
   try {
