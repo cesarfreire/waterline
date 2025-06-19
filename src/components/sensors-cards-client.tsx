@@ -84,6 +84,32 @@ export function SectionCardsClient({ data }: { data: Promise<DashboardDTO> }) {
   const { sensorData, deviceStatus } = dashboardData;
   const timeAgo = formatTimeAgo(new Date(sensorData.timestamp));
 
+  const getWaterLevelStatus = () => {
+    const level = sensorData.water_level;
+    if (level >= 90) {
+      return {
+        text: "Normal",
+        // Para verde e amarelo, usamos classes customizadas pois não são variantes padrão
+        className: "bg-green-600 hover:bg-green-700 text-primary-foreground",
+        variant: "default" as const,
+      };
+    } else if (level >= 50) {
+      return {
+        text: "Abaixo do Normal",
+        className: "bg-yellow-500 hover:bg-yellow-600 text-primary-foreground",
+        variant: "default" as const,
+      };
+    } else {
+      return {
+        text: "Muito Baixo",
+        className: "", // Usaremos a variante 'destructive' padrão
+        variant: "destructive" as const,
+      };
+    }
+  };
+
+  const waterLevelStatus = getWaterLevelStatus();
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* cabecalho geral */}
@@ -151,9 +177,16 @@ export function SectionCardsClient({ data }: { data: Promise<DashboardDTO> }) {
             <Layers className="h-5 w-5 text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{sensorData.water_level}</div>
-            <p className="text-xs text-muted-foreground">
-              Leitura do sensor analógico
+            {/* Exibe o Badge com o status e cor correspondente */}
+            <Badge
+              variant={waterLevelStatus.variant}
+              className={`${waterLevelStatus.className} text-lg`}
+            >
+              {waterLevelStatus.text}
+            </Badge>
+            {/* Mantém o valor percentual como informação secundária */}
+            <p className="text-xs text-muted-foreground mt-2">
+              Leitura do sensor: {sensorData.water_level}%
             </p>
           </CardContent>
         </Card>
