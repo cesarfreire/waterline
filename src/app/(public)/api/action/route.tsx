@@ -1,4 +1,3 @@
-import clientPromise from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import AWS from "aws-sdk";
 
@@ -10,11 +9,15 @@ const iotdata = new AWS.IotData({
 });
 
 const ALLOWED_ACTIONS = [
-  "APAGA_LED",
-  "ACENDE_LED",
-  "DESLIGA_RELE",
-  "LIGA_RELE",
   "ALIMENTAR_AGORA",
+  "LIGA_RELE_1",
+  "LIGA_RELE_2",
+  "LIGA_RELE_3",
+  "LIGA_RELE_4",
+  "DESLIGA_RELE_1",
+  "DESLIGA_RELE_2",
+  "DESLIGA_RELE_3",
+  "DESLIGA_RELE_4",
 ];
 const TOPICO = "esp8266/commands";
 

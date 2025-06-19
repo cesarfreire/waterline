@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import clientPromise from "@/lib/mongodb";
-import { DashboardDTO } from "@/lib/types";
+import { DashboardDTO, DeviceStatus } from "@/lib/types";
 
 export const connectDatabase = async () => {
   try {
@@ -42,42 +42,43 @@ export const getDashboardData = async (): Promise<DashboardDTO> => {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DATABASE as string);
 
-    // Definimos as três consultas que precisamos executar
+    // consulta 1: ultima leitura dos sensores
     const sensorDataQuery = db
-      .collection("leituras") // ATENÇÃO: Verifique se o nome da coleção é "leituras" ou "dados"
+      .collection("dados")
       .findOne({}, { sort: { timestamp: -1 } });
 
-    const ledStatusQuery = db
-      .collection("commands") // ATENÇÃO: Coleção onde os comandos são salvos
-      .findOne(
-        { action: { $in: ["ACENDE_LED", "APAGA_LED"] } },
-        { sort: { timestamp: -1 } }
-      );
+    // consultas 2-5: estado de cada um dos 4 reles
+    const relayIds = [1, 2, 3, 4];
+    const releStatusQueries = relayIds.map((id) =>
+      db
+        .collection("logs")
+        .findOne(
+          { action: { $in: [`LIGA_RELE_${id}`, `DESLIGA_RELE_${id}`] } },
+          { sort: { timestamp: -1 } }
+        )
+    );
 
-    const releStatusQuery = db
-      .collection("commands")
-      .findOne(
-        { action: { $in: ["LIGA_RELE", "DESLIGA_RELE"] } },
-        { sort: { timestamp: -1 } }
-      );
-
-    // Executamos todas as consultas em paralelo para maior eficiência
-    const [sensorDoc, ledActionDoc, releActionDoc] = await Promise.all([
+    // executamos todas as 5 consultas em paralelo para maxima eficiencia
+    const [sensorDoc, ...releActionDocs] = await Promise.all([
       sensorDataQuery,
-      ledStatusQuery,
-      releStatusQuery,
+      ...releStatusQueries,
     ]);
 
-    // Validação essencial: precisamos de pelo menos um dado de sensor
+    // validacao essencial: precisamos de pelo menos um dado de sensor
     if (!sensorDoc) {
-      throw new Error("Nenhum dado encontrado na coleção 'leituras'.");
+      throw new Error("Nenhum dado encontrado na coleção 'dados'.");
     }
 
-    // Processamos os resultados para determinar o estado
-    const ledStatus = ledActionDoc?.action === "ACENDE_LED" ? "ON" : "OFF";
-    const releStatus = releActionDoc?.action === "LIGA_RELE" ? "ON" : "OFF";
+    // processamos os resultados dos reles para determinar o estado de cada um
+    const deviceStatus = releActionDocs.reduce((acc, currentDoc, index) => {
+      const releId = relayIds[index];
+      // Se a ultima acao começar com "LIGA", esta ON. Senao, OFF.
+      const status = currentDoc?.action.startsWith("LIGA") ? "ON" : "OFF";
+      acc[`rele${releId}Status`] = status;
+      return acc;
+    }, {} as { [key: string]: string }) as DeviceStatus;
 
-    // Montamos o objeto de retorno final, garantindo a serialização dos dados
+    // montamos o objeto de retorno final, garantindo a serialização dos dados
     const dashboardData: DashboardDTO = {
       sensorData: {
         _id: sensorDoc._id.toString(),
@@ -85,18 +86,14 @@ export const getDashboardData = async (): Promise<DashboardDTO> => {
         temperature: sensorDoc.temperature,
         water_temperature: sensorDoc.water_temperature,
         water_level: sensorDoc.water_level,
-        timestamp: sensorDoc.timestamp.toISOString(), // Garante que seja uma string ISO
+        timestamp: sensorDoc.timestamp,
       },
-      deviceStatus: {
-        ledStatus,
-        releStatus,
-      },
+      deviceStatus, // objeto com o status dos 4 reles
     };
 
     return dashboardData;
   } catch (error) {
     console.error("Erro ao buscar dados para o dashboard:", error);
-    // Relança o erro para que a camada superior (ex: Server Component) possa tratá-lo
     throw new Error("Não foi possível carregar os dados do dashboard.");
   }
 };
@@ -152,16 +149,21 @@ export const getHistorySensorData = async (
 ): Promise<SensorData[]> => {
   const client = clientPromise;
   const db = client.db(process.env.MONGODB_DATABASE as string);
+  // usamos uma pipeline de agregação para um controle mais fino da query
+  const pipeline = [
+    // etapa 1: Filtra os documentos
+    { $match: { [sensor]: { $exists: true } } },
 
-  const rawData = await db
-    .collection("dados")
-    .find(
-      { [sensor]: { $exists: true } },
-      { projection: { timestamp: 1, timezone: 1, [sensor]: 1 } }
-    )
-    .sort({ timestamp: 1 })
-    .limit(1000)
-    .toArray();
+    // etapa 2: Ordena do MAIS NOVO para o mais antigo para encontrar os ultimos registros
+    { $sort: { timestamp: -1 } },
+
+    // etapa 3: Limita o resultado aos 1000 registros mais recentes
+    { $limit: 1000 },
+
+    // etapa 4: Ordena NOVAMENTE, agora do mais antigo para o mais novo, para o grafico
+    { $sort: { timestamp: 1 } },
+  ];
+  const rawData = await db.collection("dados").aggregate(pipeline).toArray();
 
   if (!rawData || rawData.length === 0) {
     throw new Error("Nenhum dado encontrado para o sensor selecionado.");
@@ -170,7 +172,6 @@ export const getHistorySensorData = async (
   const result = rawData.map((doc) => ({
     timestamp: doc.timestamp,
     value: doc[sensor],
-    timezone: doc.timezone,
   }));
 
   return result;

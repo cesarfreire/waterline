@@ -1,5 +1,4 @@
 import SectionActions from "@/components/section-actions";
-import { Separator } from "@/components/ui/separator";
 import { auth } from "@/auth";
 
 export default async function RemoteCommandsPage() {

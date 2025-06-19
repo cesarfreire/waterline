@@ -1,57 +1,57 @@
-// /app/api/dashboard-data/route.ts
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+
+export const dynamic = "force-dynamic"; // Força o Next.js a tratar esta rota como dinâmica
 
 export async function GET() {
   try {
     const client = clientPromise;
     const db = client.db(process.env.MONGODB_DATABASE as string);
-    // 1. Pega o último registro de sensor
-    const sensorData = await db
+    // consulta ultimos dados dos sensores
+    const sensorDataQuery = db
       .collection("dados")
-      .find({})
-      .sort({ timestamp: -1 })
-      .limit(1)
-      .toArray();
+      .findOne({}, { sort: { timestamp: -1 } });
 
-    // 2. Pega o último status do LED
-    const lastLedAction = await db
-      .collection("logs")
-      .find({ action: { $in: ["ACENDE_LED", "APAGA_LED"] } })
-      .sort({ timestamp: -1 })
-      .limit(1)
-      .toArray();
+    // consulta ultimos dados dos reles
+    const relayIds = [1, 2, 3, 4];
+    const releStatusQueries = relayIds.map((id) =>
+      db
+        .collection("logs")
+        .findOne(
+          { action: { $in: [`LIGA_RELE_${id}`, `DESLIGA_RELE_${id}`] } },
+          { sort: { timestamp: -1 } }
+        )
+    );
 
-    // 3. Pega o último status do Relé
-    const lastReleAction = await db
-      .collection("logs")
-      .find({ action: { $in: ["LIGA_RELE", "DESLIGA_RELE"] } })
-      .sort({ timestamp: -1 })
-      .limit(1)
-      .toArray();
+    const [sensorDoc, ...releActionDocs] = await Promise.all([
+      sensorDataQuery,
+      ...releStatusQueries,
+    ]);
 
-    if (!sensorData[0]) {
+    // validacao
+    if (!sensorDoc) {
       return NextResponse.json(
         { message: "Nenhum dado de sensor encontrado." },
         { status: 404 }
       );
     }
 
-    const ledStatus =
-      lastLedAction.length > 0 && lastLedAction[0].action === "ACENDE_LED"
-        ? "ON"
-        : "OFF";
-    const releStatus =
-      lastReleAction.length > 0 && lastReleAction[0].action === "LIGA_RELE"
-        ? "ON"
-        : "OFF";
+    // transforma os dados dos reles em um objeto de status
+    const deviceStatus = releActionDocs.reduce((acc, currentDoc, index) => {
+      const releId = relayIds[index];
+      const status = currentDoc?.action.startsWith("LIGA") ? "ON" : "OFF";
+      acc[`rele${releId}Status`] = status;
+      return acc;
+    }, {} as { [key: string]: string });
 
+    // monta resposta da api
     const responsePayload = {
-      sensorData: sensorData[0],
-      deviceStatus: {
-        ledStatus,
-        releStatus,
+      sensorData: {
+        ...sensorDoc,
+        _id: sensorDoc._id.toString(),
+        timestamp: sensorDoc.timestamp,
       },
+      deviceStatus,
     };
 
     return NextResponse.json(responsePayload);

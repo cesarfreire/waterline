@@ -1,7 +1,6 @@
-// app/components/SectionCardsClient.tsx
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useState, ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,13 +9,48 @@ import {
   Droplets,
   Waves,
   Layers,
-  Lightbulb,
-  Power,
   RefreshCw,
   Clock,
+  Zap,
+  Lightbulb,
+  Fish,
+  Filter,
 } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 import { DashboardDTO } from "@/lib/types";
+
+// array de configuração com icones
+const statusConfig: {
+  id: number;
+  label: string;
+  key: keyof DashboardDTO["deviceStatus"];
+  icon: ReactNode;
+}[] = [
+  {
+    id: 1,
+    label: "Iluminação",
+    key: "rele1Status",
+    icon: <Lightbulb className="h-5 w-5 text-yellow-400" />,
+  },
+  {
+    id: 2,
+    label: "Alimentador",
+    key: "rele2Status",
+    icon: <Fish className="h-5 w-5 text-blue-500" />,
+  },
+  {
+    id: 3,
+    label: "Filtro",
+    key: "rele3Status",
+    icon: <Filter className="h-5 w-5 text-gray-400" />,
+  },
+  {
+    id: 4,
+    label: "Bomba",
+    key: "rele4Status",
+    icon: <Waves className="h-5 w-5 text-teal-500" />,
+  },
+];
 
 export function SectionCardsClient({ data }: { data: Promise<DashboardDTO> }) {
   const initialData = use(data);
@@ -26,7 +60,6 @@ export function SectionCardsClient({ data }: { data: Promise<DashboardDTO> }) {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // A API agora retorna tanto os sensores quanto o status em uma única chamada
       const response = await fetch("/api/dashboard-data");
       if (!response.ok) {
         throw new Error("Falha ao buscar dados do dashboard.");
@@ -40,7 +73,6 @@ export function SectionCardsClient({ data }: { data: Promise<DashboardDTO> }) {
     }
   };
 
-  // Se não houver dados iniciais, mostra uma mensagem de carregamento.
   if (!dashboardData?.sensorData) {
     return (
       <div className="text-center p-8 text-muted-foreground">
@@ -54,7 +86,7 @@ export function SectionCardsClient({ data }: { data: Promise<DashboardDTO> }) {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {/* Cabeçalho Unificado */}
+      {/* cabecalho geral */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Dashboard Geral</h1>
@@ -75,10 +107,9 @@ export function SectionCardsClient({ data }: { data: Promise<DashboardDTO> }) {
         </Button>
       </div>
 
-      {/* Grid de Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {/* Card: Umidade */}
-        <Card className="col-span-1 lg:col-span-1 xl:col-span-2">
+      {/* grid de cards dos sensores */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Umidade do Ar</CardTitle>
             <Droplets className="h-5 w-5 text-blue-500" />
@@ -88,8 +119,7 @@ export function SectionCardsClient({ data }: { data: Promise<DashboardDTO> }) {
           </CardContent>
         </Card>
 
-        {/* Card: Temperatura do Ar */}
-        <Card className="col-span-1 lg:col-span-1 xl:col-span-2">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
               Temperatura do Ar
@@ -101,8 +131,7 @@ export function SectionCardsClient({ data }: { data: Promise<DashboardDTO> }) {
           </CardContent>
         </Card>
 
-        {/* Card: Temperatura da Água */}
-        <Card className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-2">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
               Temperatura da Água
@@ -116,8 +145,7 @@ export function SectionCardsClient({ data }: { data: Promise<DashboardDTO> }) {
           </CardContent>
         </Card>
 
-        {/* Card: Nível da Água */}
-        <Card className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-3">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Nível da Água</CardTitle>
             <Layers className="h-5 w-5 text-gray-500" />
@@ -129,46 +157,37 @@ export function SectionCardsClient({ data }: { data: Promise<DashboardDTO> }) {
             </p>
           </CardContent>
         </Card>
+      </div>
 
-        {/* --- NOVOS CARDS DE STATUS --- */}
-
-        {/* Card: Status do LED */}
-        <Card className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-3">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Status do LED</CardTitle>
-            <Lightbulb className="h-5 w-5 text-yellow-400" />
-          </CardHeader>
-          <CardContent>
-            <Badge
-              variant={
-                deviceStatus.ledStatus === "ON" ? "default" : "destructive"
-              }
-              className="text-lg"
-            >
-              {deviceStatus.ledStatus === "ON" ? "Ligado" : "Desligado"}
-            </Badge>
-          </CardContent>
-        </Card>
-
-        {/* Card: Status do Relé */}
-        <Card className="hidden sm:block sm:col-span-2 lg:col-span-1 xl:col-span-3">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Status do Relé
-            </CardTitle>
-            <Power className="h-5 w-5 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <Badge
-              variant={
-                deviceStatus.releStatus === "ON" ? "default" : "destructive"
-              }
-              className="text-lg"
-            >
-              {deviceStatus.releStatus === "ON" ? "Ligado" : "Desligado"}
-            </Badge>
-          </CardContent>
-        </Card>
+      {/* grid de cards de status dos dispositivos */}
+      <div className="border-t pt-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Zap className="w-5 h-5 text-cyan-500" />
+          Status dos Dispositivos
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* mapeia o array para criar um card por rele */}
+          {statusConfig.map((item) => (
+            <Card key={item.id}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {item.label}
+                </CardTitle>
+                {item.icon}
+              </CardHeader>
+              <CardContent>
+                <Badge
+                  variant={
+                    deviceStatus[item.key] === "ON" ? "default" : "destructive"
+                  }
+                  className="text-base"
+                >
+                  {deviceStatus[item.key] === "ON" ? "Ligado" : "Desligado"}
+                </Badge>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -2,9 +2,15 @@ import { getHistorySensorData } from "@/database";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic"; // Força o Next.js a tratar esta rota como dinâmica
 
 const querySchema = z.object({
-  sensor: z.enum(["temperature", "humidity", "water_temperature", "water_level"]),
+  sensor: z.enum([
+    "temperature",
+    "humidity",
+    "water_temperature",
+    "water_level",
+  ]),
   minutes: z
     .string()
     .optional()
