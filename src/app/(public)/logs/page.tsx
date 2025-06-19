@@ -3,6 +3,8 @@ import { LogsList } from "@/components/logs-client";
 import { getLatestLogsData } from "@/database";
 import { Loader2 } from "lucide-react";
 
+export const revalidate = 0;
+
 export default function LogsPage() {
   const initial_logs = getLatestLogsData();
   return (

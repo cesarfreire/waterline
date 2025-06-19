@@ -1,6 +1,8 @@
 import SectionActions from "@/components/section-actions";
 import { auth } from "@/auth";
 
+export const revalidate = 0;
+
 export default async function RemoteCommandsPage() {
   const session = await auth();
 

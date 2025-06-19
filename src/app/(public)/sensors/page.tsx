@@ -3,6 +3,8 @@ import { getHistorySensorData } from "@/database";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
 
+export const revalidate = 0;
+
 export default function SensorsPage() {
   const initialHistoryData = getHistorySensorData("temperature", {});
   return (

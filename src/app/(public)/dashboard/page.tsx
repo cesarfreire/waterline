@@ -3,6 +3,8 @@ import { getDashboardData } from "@/database";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
 
+export const revalidate = 0;
+
 export default function DashboardPage() {
   const dashboardDataPromise = getDashboardData();
   return (
