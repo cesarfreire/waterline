@@ -33,6 +33,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useSession } from "next-auth/react";
 import SignInButton from "./sign-in-button";
