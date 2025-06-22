@@ -124,6 +124,7 @@ export const getLatestLogsData = async (): Promise<LogList> => {
     .collection("logs")
     .find({})
     .sort({ timestamp: -1 })
+    .limit(100) // limitamos a 100 logs mais recentes
     .toArray();
   if (!log) {
     throw new Error("Nenhum dado encontrado na coleção 'logs'.");
