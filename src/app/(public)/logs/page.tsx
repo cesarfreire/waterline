@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { LogsList } from "@/components/logs-client";
+import { LogsList } from "@/components/logs-list";
 import { getLatestLogsData } from "@/database";
 import { Loader2 } from "lucide-react";
 

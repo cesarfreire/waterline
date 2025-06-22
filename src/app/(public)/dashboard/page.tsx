@@ -1,4 +1,4 @@
-import { SectionCardsClient } from "@/components/sensors-cards-client";
+import { SectionCardsClient } from "@/components/sensors-cards";
 import { getDashboardData } from "@/database";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
