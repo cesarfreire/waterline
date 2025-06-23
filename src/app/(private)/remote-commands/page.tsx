@@ -6,24 +6,19 @@ export const revalidate = 0;
 export default async function RemoteCommandsPage() {
   const session = await auth();
 
-  if (!session?.user) {
-    return (
-      <div>Você não tem permissão para visualizar a página requisitada.</div>
-    );
+  if (session?.user?.role === "admin") {
+    return <SectionActions />;
   }
 
-  if (session.user.email === "iceesar@live.com") {
-    return (
-      <>
-        <SectionActions />
-      </>
-    );
-  }
   return (
-    <>
-      <h2 className="text-2xl font-semibold mb-4">
-        Você não tem permissão para visualizar a página requisitada.
+    <div className="p-6">
+      <h2 className="text-2xl font-semibold mb-4 text-destructive">
+        Acesso Negado
       </h2>
-    </>
+      <p className="text-muted-foreground">
+        Você não tem permissão para visualizar esta página ou executar comandos
+        remotos.
+      </p>
+    </div>
   );
 }

@@ -28,7 +28,7 @@ export function NavMain({
   // Filter items based on session status
   const filteredItems = items.filter((item) => {
     if (item.public) return true;
-    return session?.user?.email; // Only show private items if user is logged in
+    return session?.user?.role === "admin"; // Only show private items if user is logged in
   });
   const pathname = usePathname();
 

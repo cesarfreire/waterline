@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import AWS from "aws-sdk";
+import { auth } from "@/auth";
 
 const iotdata = new AWS.IotData({
   endpoint: process.env.AWS_IOT_ENDPOINT as string, // ex: 'a1234567890-ats.iot.us-east-1.amazonaws.com'
@@ -22,6 +23,15 @@ const ALLOWED_ACTIONS = [
 const TOPICO = "esp8266/commands";
 
 export async function POST(req: Request) {
+  // Verifica se o usuário está autenticado
+  const session = await auth();
+  if (!session?.user || session.user.role !== "admin") {
+    return NextResponse.json(
+      { message: "Access denied. Administrator permission required." },
+      { status: 403 } // 403 Forbidden é mais apropriado que 401 Unauthorized aqui
+    );
+  }
+
   try {
     const { action } = await req.json();
 
